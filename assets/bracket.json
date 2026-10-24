@@ -1,0 +1,48 @@
+{
+ "arris": "0.9.1",
+ "labels": [
+  {
+   "name": "plate",
+   "colour": "#96a0af"
+  },
+  {
+   "name": "boss",
+   "colour": "#3c82c8"
+  },
+  {
+   "name": "bore",
+   "colour": "#e18228"
+  },
+  {
+   "name": "bolt holes",
+   "colour": "#50af6e"
+  },
+  {
+   "name": "counterbores",
+   "colour": "#be50a0"
+  },
+  {
+   "name": "bend fillet",
+   "colour": "#e1be32"
+  },
+  {
+   "name": "rim fillets",
+   "colour": "#3cafb9"
+  },
+  {
+   "name": "chamfer",
+   "colour": "#d25046"
+  }
+ ],
+ "faces": 21,
+ "edges": 45,
+ "triangles": 7340,
+ "chord": 0.005,
+ "volume": 34975.614,
+ "area": 12215.584,
+ "centroid": [
+  18.567,
+  20.0,
+  16.212
+ ]
+}

@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arris — a B-Rep kernel in pure Rust</title>
+<meta name="description" content="Arris is a B-Rep geometric kernel in pure Rust, from Rust or Python. A bracket built with it, in 3D, every face coloured by the operation that made it.">
+<meta property="og:title" content="Arris — a B-Rep kernel in pure Rust">
+<meta property="og:description" content="A bracket built with arris.build, every face coloured by the operation that made it.">
+<meta property="og:image" content="https://raw.githubusercontent.com/arris-labs/arris/main/docs/assets/showcase.png">
+<link rel="icon" href="https://raw.githubusercontent.com/arris-labs/arris/main/docs/assets/arris.svg">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1c2230; --muted: #5d6676;
+    --line: #e1e4ea; --code-bg: #f1f3f6; --accent: #2f6fb8; --viewer: #eceff3;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #191d25; --ink: #e6e9ef; --muted: #9aa3b2;
+      --line: #2a303b; --code-bg: #141820; --accent: #7fb0ea; --viewer: #1d222b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #191d25; --ink: #e6e9ef; --muted: #9aa3b2;
+    --line: #2a303b; --code-bg: #141820; --accent: #7fb0ea; --viewer: #1d222b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 32px 0 20px; display: flex; gap: 16px; align-items: center; }
+  header img { width: 56px; height: 56px; }
+  h1 { margin: 0; font-size: 1.9rem; letter-spacing: -0.01em; }
+  .tagline { margin: 2px 0 0; color: var(--muted); }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+  .links a {
+    text-decoration: none; border: 1px solid var(--line); background: var(--panel);
+    padding: 6px 12px; border-radius: 8px; font-size: 0.92rem; color: var(--ink);
+  }
+  .links a:hover { border-color: var(--accent); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .card h2 { font-size: 1rem; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .card .body { padding: 14px 16px; }
+  #viewer { position: relative; height: 520px; background: var(--viewer); touch-action: none; }
+  @media (max-width: 900px) { #viewer { height: 380px; } }
+  #viewer canvas { display: block; width: 100%; height: 100%; }
+  #hint {
+    position: absolute; left: 12px; bottom: 10px; font-size: 0.8rem; color: var(--muted);
+    pointer-events: none;
+  }
+  #hint .narrow { display: none; }
+  @media (max-width: 600px) { #hint .wide { display: none; } #hint .narrow { display: inline; } }
+  #status { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .legend button {
+    font: inherit; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+    padding: 4px 10px; border-radius: 999px; cursor: pointer;
+  }
+  .legend button[aria-pressed="true"] { border-color: var(--ink); }
+  .legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-note { padding: 0 16px 12px; margin: 0; color: var(--muted); font-size: 0.85rem; }
+  pre {
+    margin: 0; padding: 14px 16px; background: var(--code-bg); overflow-x: auto;
+    font: 13px/1.5 var(--mono); tab-size: 4;
+  }
+  .install { font: 14px var(--mono); background: var(--code-bg); padding: 10px 12px; border-radius: 8px; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.9rem; margin: 0; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; font-family: var(--mono); font-size: 0.85rem; }
+  .points { margin: 0; padding-left: 20px; }
+  .points li { margin: 0 0 8px; }
+  .side { display: grid; gap: 20px; align-content: start; }
+  .tok-c { color: var(--muted); font-style: italic; }
+  .tok-s { color: #b0562f; }
+  .tok-k { color: #8a3fb0; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .tok-s { color: #e3a07a; }
+    :root:not([data-theme="light"]) .tok-k { color: #c99ae8; }
+  }
+  :root[data-theme="dark"] .tok-s { color: #e3a07a; }
+  :root[data-theme="dark"] .tok-k { color: #c99ae8; }
+  footer { color: var(--muted); font-size: 0.85rem; padding: 28px 0 40px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="https://raw.githubusercontent.com/arris-labs/arris/main/docs/assets/arris.svg" alt="">
+    <div>
+      <h1>Arris</h1>
+      <p class="tagline">A B-Rep geometric kernel in pure Rust, for code-CAD scripts, AI agents and CAE pipelines.</p>
+    </div>
+  </header>
+  <nav class="links">
+    <a href="https://github.com/arris-labs/arris">GitHub</a>
+    <a href="https://pypi.org/project/arris/">PyPI</a>
+    <a href="https://crates.io/crates/arris">crates.io</a>
+    <a href="https://docs.rs/arris">docs.rs</a>
+    <a href="https://github.com/arris-labs/arris/blob/main/docs/COMPARISON.md">What it does and refuses</a>
+    <a href="assets/bracket.step" download>Download the STEP</a>
+  </nav>
+
+  <div class="grid">
+    <section class="card">
+      <h2>A motor-mount bracket, each face coloured by the operation that made it</h2>
+      <div id="viewer"><div id="status">Loading the mesh…</div><div id="hint"><span class="wide">Drag to orbit · scroll to zoom · right-drag to pan</span><span class="narrow">Drag to orbit · pinch to zoom</span></div></div>
+      <div class="legend" id="legend" role="group" aria-label="Operations"></div>
+      <p class="legend-note">Choose an operation to see only the faces it made. The colours come from provenance: every operation reports what it generated, modified and deleted, and a tag put on faces follows them through every later operation.</p>
+    </section>
+
+    <div class="side">
+      <section class="card">
+        <h2>Try it</h2>
+        <div class="body">
+          <div class="install">pip install arris</div>
+          <p style="margin:10px 0 0">Prebuilt wheels for Linux, macOS and Windows, with no Rust toolchain needed. From Rust, <code>cargo add arris</code>.</p>
+        </div>
+      </section>
+      <section class="card">
+        <h2>What sets it apart</h2>
+        <div class="body">
+          <ul class="points">
+            <li><b>Every operation says what it did.</b> Provenance lets a script pick “the edge the extrude made” instead of an index that shifts when the model changes.</li>
+            <li><b>It refuses rather than guesses.</b> Geometry it cannot do is a typed error naming the entities, never a panic or an invalid shape.</li>
+            <li><b>Deterministic.</b> Same input, same ids, on every platform; a wasm32 body is byte-identical to the native one.</li>
+            <li><b>Pure Rust.</b> No <code>unsafe</code>, no C++ underneath. Open CASCADE is run as the test oracle, never linked.</li>
+          </ul>
+        </div>
+      </section>
+      <section class="card">
+        <h2>This part</h2>
+        <div class="body">
+          <dl class="facts" id="facts"></dl>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="card" style="margin-top:20px">
+    <h2>The script that built it (<a href="assets/bracket.py">bracket.py</a>)</h2>
+    <pre id="script">Loading…</pre>
+  </section>
+
+  <footer>
+    This page is static: the mesh was exported once from the script above with <code>pip install arris</code> (<a href="https://github.com/arris-labs/arris-labs.github.io/blob/main/tools/export.py">tools/export.py</a>). An editable playground, with the script running in your browser, is planned.
+    Arris is MIT OR Apache-2.0.
+  </footer>
+</div>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const viewer = document.getElementById("viewer");
+const status = document.getElementById("status");
+
+function escape(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// A small Python highlighter: comments, strings and keywords.
+function highlight(source) {
+  const token = /(#[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')|\b(import|from|def|return|for|in|if|else|not|and|or|set|__name__)\b/g;
+  let out = "", last = 0, m;
+  while ((m = token.exec(source))) {
+    out += escape(source.slice(last, m.index));
+    const cls = m[1] ? "tok-c" : m[2] ? "tok-s" : "tok-k";
+    out += `<span class="${cls}">${escape(m[0])}</span>`;
+    last = token.lastIndex;
+  }
+  return out + escape(source.slice(last));
+}
+
+const [meta, blob, script] = await Promise.all([
+  fetch("assets/bracket.json").then((r) => r.json()),
+  fetch("assets/bracket.bin").then((r) => r.arrayBuffer()),
+  fetch("assets/bracket.py").then((r) => r.text()),
+]);
+
+document.getElementById("script").innerHTML = highlight(script);
+
+const facts = [
+  ["Built with", `arris ${meta.arris}`],
+  ["Faces / edges", `${meta.faces} / ${meta.edges}`],
+  ["Volume", `${meta.volume.toLocaleString("en")} mm³`],
+  ["Area", `${meta.area.toLocaleString("en")} mm²`],
+  ["Centroid", `(${meta.centroid.join(", ")})`],
+  ["Mesh", `${meta.triangles.toLocaleString("en")} triangles at ${meta.chord} mm chord`],
+];
+document.getElementById("facts").innerHTML = facts
+  .map(([k, v]) => `<dt>${k}</dt><dd>${escape(v)}</dd>`).join("");
+
+// Decode the mesh (format in tools/export.py).
+const [nV, nT, nS] = new Uint32Array(blob, 0, 4);
+let at = 16;
+const positions = new Float32Array(blob, at, nV * 3); at += nV * 12;
+const indices = new Uint32Array(blob, at, nT * 3); at += nT * 12;
+const segments = new Float32Array(blob, at, nS * 6); at += nS * 24;
+const labels = new Uint8Array(blob, at, nV);
+
+const palette = meta.labels.map((l) => new THREE.Color(l.colour));
+const faded = new THREE.Color(0.55, 0.57, 0.6);
+
+const geometry = new THREE.BufferGeometry();
+geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+geometry.computeVertexNormals();
+const colours = new Float32Array(nV * 3);
+geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
+
+const material = new THREE.MeshStandardMaterial({
+  vertexColors: true, roughness: 0.55, metalness: 0.05,
+  polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+});
+const solid = new THREE.Mesh(geometry, material);
+
+const edgeGeometry = new THREE.BufferGeometry();
+edgeGeometry.setAttribute("position", new THREE.BufferAttribute(segments, 3));
+const edges = new THREE.LineSegments(edgeGeometry, new THREE.LineBasicMaterial({ color: 0x1a1d24, transparent: true, opacity: 0.7 }));
+
+let selected = null;
+function paint() {
+  for (let i = 0; i < nV; i++) {
+    const own = palette[labels[i]];
+    const c = selected === null || labels[i] === selected ? own : faded;
+    colours[3 * i] = c.r; colours[3 * i + 1] = c.g; colours[3 * i + 2] = c.b;
+  }
+  geometry.attributes.color.needsUpdate = true;
+  material.opacity = 1;
+  render();
+}
+
+const legend = document.getElementById("legend");
+meta.labels.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.setAttribute("aria-pressed", "false");
+  b.innerHTML = `<span class="dot" style="background:${l.colour}"></span>${escape(l.name)}`;
+  b.addEventListener("click", () => {
+    selected = selected === i ? null : i;
+    legend.querySelectorAll("button").forEach((x, j) => x.setAttribute("aria-pressed", String(j === selected)));
+    paint();
+  });
+  legend.appendChild(b);
+});
+
+// The scene: z up, as the model is.
+const scene = new THREE.Scene();
+scene.add(solid, edges);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8890a0, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.position.set(-60, -90, 120);
+scene.add(key);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+viewer.appendChild(renderer.domElement);
+
+geometry.computeBoundingSphere();
+const { center, radius } = geometry.boundingSphere;
+const camera = new THREE.PerspectiveCamera(35, 1, radius / 100, radius * 100);
+camera.up.set(0, 0, 1);
+const view = new THREE.Vector3(1.0, -1.25, 0.85).normalize().multiplyScalar(radius * 3.4);
+camera.position.copy(center).add(view);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(center);
+controls.enableDamping = true;
+controls.addEventListener("change", render);
+
+function resize() {
+  const w = viewer.clientWidth, h = viewer.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  render();
+}
+
+let queued = false;
+function render() {
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => {
+    queued = false;
+    // Keep the key light over the viewer's shoulder.
+    key.position.copy(camera.position).add(new THREE.Vector3(0, 0, radius * 2));
+    if (controls.update()) render();
+    renderer.render(scene, camera);
+  });
+}
+
+new ResizeObserver(resize).observe(viewer);
+status.remove();
+paint();
+resize();
+</script>
+</body>
+</html>
